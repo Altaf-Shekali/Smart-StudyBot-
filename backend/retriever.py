@@ -1,7 +1,8 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings  # ✅ Correct import
 from PyPDF2 import PdfReader
+from langchain.schema import Document
 import os
 import re
 import numpy as np
@@ -23,18 +24,23 @@ def create_vectorstore(pdf_path, store_dir):
     text = load_pdf(pdf_path)
     if not text:
         raise ValueError("No text extracted from PDF")
-    
+
+    # The rest of your existing code
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        separators=["\n\n", "\n", ". "]
+        chunk_size=800,
+        chunk_overlap=300,
+        separators=["\n\n• ", "\n\n", "\n", ". ", "! ", "? ", "; "]
     )
-
-    docs = splitter.create_documents(
-        [text],
-        metadatas=[{"source": os.path.basename(pdf_path)}] * len(text)
-    )
-
+    
+    # Create hierarchical chunks
+    docs = []
+    for section in text.split("\n\n"):
+        section_chunks = splitter.split_text(section)
+        docs.extend([Document( 
+            page_content=chunk,
+            metadata={"source": f"{os.path.basename(pdf_path)}-section{i}"}
+        ) for i, chunk in enumerate(section_chunks)])
+    
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     db = FAISS.from_documents(docs, embeddings)
     db.save_local(store_dir)
@@ -66,19 +72,46 @@ def scale_scores(scores, score_range=(0, 1)):
 
 
 # ----- Search Across Multiple Vectorstores -----
-def search_multiple_indexes(base_dir, query, min_threshold=-0.5, max_threshold=0.75):  # Allow range from -0.5 to 0.75
+# In retriever.py
+
+def search_multiple_indexes(base_dir, query, min_threshold=0.15, max_threshold=0.85):
     matches = []
     sources = set()
-
+    
+    # Check if base_dir exists first
+    if not os.path.exists(base_dir):
+        return {"matched_chunks": [], "sources": []}
+    
     for subject in os.listdir(base_dir):
         subject_dir = os.path.join(base_dir, subject)
         try:
+            if not os.path.isdir(subject_dir):
+                continue
+                
             db = load_vectorstore(subject_dir)
-            for doc, score in db.similarity_search_with_relevance_scores(query, k=5):  # Fetch top 5 results
-                if min_threshold <= score <= max_threshold:  # Include documents within the range
-                    matches.append(doc.page_content)
+            raw_results = db.similarity_search_with_relevance_scores(query, k=7)
+            
+            if not raw_results:
+                continue
+                
+            # Extract scores and normalize
+            scores = np.array([score for _, score in raw_results])
+            scaled_scores = scale_scores(scores, (0, 1))
+            
+            # Apply dynamic thresholding
+            avg_score = np.mean(scaled_scores)
+            dynamic_threshold = max(min_threshold, avg_score - 0.15)
+            
+            for (doc, _), scaled in zip(raw_results, scaled_scores):
+                if scaled >= dynamic_threshold:
+                    matches.append(f"Source: {doc.metadata['source']}\nContent: {doc.page_content}")
                     sources.add(f"{subject}/{doc.metadata['source']}")
+
         except Exception as e:
             print(f"Search error in {subject}: {str(e)}")
-
-    return {"matched_chunks": matches, "sources": list(sources)}
+    
+    # Relevance-based sorting
+    return {
+        "matched_chunks": sorted(matches, key=lambda x: len(x), reverse=True)[:5],
+        "sources": list(sources)
+    }

@@ -1,0 +1,8 @@
+2025-05-05 20:10:07,914 [INFO] Use pytorch device_name: cpu
+2025-05-05 20:10:07,915 [INFO] Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-05-05 20:10:11,367 [INFO] Loading faiss with AVX512 support.
+2025-05-05 20:10:11,367 [INFO] Could not load library with AVX512 support due to:
+ModuleNotFoundError("No module named 'faiss.swigfaiss_avx512'")
+2025-05-05 20:10:11,367 [INFO] Loading faiss with AVX2 support.
+2025-05-05 20:10:11,426 [INFO] Successfully loaded faiss with AVX2 support.
+2025-05-05 20:10:11,433 [INFO] Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.

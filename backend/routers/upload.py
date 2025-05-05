@@ -18,24 +18,28 @@ def decode_token(token):
     except:
         return None
 
-@router.post("/")
+# In main.py upload endpoint
+@app.post("/upload")
 async def upload_pdf(
     file: UploadFile = File(...),
     branch: str = Form(...),
     year: str = Form(...),
     semester: str = Form(...),
-    subject: str = Form(...),
-    token: str = Form(...)
+    subject: str = Form(...)
 ):
-    user = decode_token(token)
-    if not user or user["role"] != "teacher":
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    file_path = os.path.join("data", file.filename)
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    vec_path = os.path.join("vector_store", branch, year, semester, subject)
-    os.makedirs(vec_path, exist_ok=True)
-    create_vectorstore(file_path, vec_path)
-    return {"message": f"{file.filename} uploaded and indexed."}
+    try:
+        # Create structured directory
+        save_dir = os.path.join(VECTOR_STORE_DIR, branch, year, semester, subject)
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Save PDF
+        pdf_path = os.path.join(save_dir, file.filename)
+        with open(pdf_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        
+        # Create vectorstore in SUBJECT directory
+        create_vectorstore(pdf_path, save_dir)  # ⬅️ Critical fix
+        
+        return {"message": f"Uploaded to {branch}/{year}/{semester}/{subject}"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})

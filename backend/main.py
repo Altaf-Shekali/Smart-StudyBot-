@@ -3,12 +3,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 import shutil
+# import logging
 
 from routers import auth, query  # ✅ Import auth and query routers
 from retriever import create_vectorstore, load_vectorstore
 from llm_interface import run_llm_ollama
 from db import engine, Base
 from models import User
+
+# logging.basicConfig(
+#     level=logging.INFO,  # or DEBUG for more verbosity
+#     format="%(asctime)s [%(levelname)s] %(message)s",
+#     handlers=[
+#         logging.FileHandler("app.log"),  # logs to a file
+#         logging.StreamHandler()          # also logs to the console
+#     ]
+# )
 
 app = FastAPI()
 

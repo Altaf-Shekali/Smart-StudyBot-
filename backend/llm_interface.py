@@ -1,7 +1,7 @@
 import subprocess
 
 # Change this to "tinyllama", "llama2", or "mistral"
-MODEL_NAME = "tinyllama"  # ⚡ use this for testing. Change to "mistral" for best results
+MODEL_NAME = "mistral"  # ⚡ use this for testing. Change to "mistral" for best results
 
 def run_llm_ollama(prompt):
     try:
