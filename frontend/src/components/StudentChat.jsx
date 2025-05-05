@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import Navbar from './Navbar';
 
 const StudentChat = () => {
     const [inputs, setInputs] = useState({
@@ -15,6 +16,7 @@ const StudentChat = () => {
     const synth = useRef(null);
     const currentUtterance = useRef(null);
 
+    // Voice recognition setup
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -25,91 +27,111 @@ const StudentChat = () => {
                 recognition.current.lang = 'en-US';
                 recognition.current.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
-                    setInputs(prev => ({...prev, question: prev.question + ' ' + transcript}));
-                    recognition.current.stop(); // ✅ Automatically stop after one sentence
-                    setIsRecording(false);      // ✅ Update UI state
+                    setInputs(prev => ({
+                        ...prev, 
+                        question: `${prev.question} ${transcript}`.trim()
+                    }));
+                    setIsRecording(false);
                 };
-                
-
                 recognition.current.onerror = () => setIsRecording(false);
             }
-
             synth.current = window.speechSynthesis;
         }
-
         return () => {
             if (recognition.current) recognition.current.stop();
-            if (synth.current.speaking) synth.current.cancel();
+            if (synth.current?.speaking) synth.current.cancel();
         };
     }, []);
 
-    const toggleVoiceInput = () => {
-        if (!recognition.current) return;
-        
-        if (isRecording) {
-            recognition.current.stop();
-        } else {
-            recognition.current.start();
-        }
-        setIsRecording(!isRecording);
-    };
-
-    const handleAsk = async () => {
-        setLoading(true);
-        try {
-            const { data } = await axios.post('http://localhost:8000/query/', inputs, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            const newResponse = {
-                answer: data.answer?.replace(/\n/g, '\n') || "Sorry, we couldn't fetch an answer for your query.",
-                sources: data.sources || [],
-                isFromPdf: data.is_from_pdf || false
-            };
-
-            setResponse(newResponse);
-        } catch (err) {
+    const validateInputs = () => {
+        if (!inputs.branch || !inputs.year || !inputs.semester) {
             setResponse({
-                answer: err.response?.data?.detail || 'Error fetching answer',
+                answer: "⚠️ Please fill all academic criteria (Branch, Year, Semester)",
                 sources: [],
                 isFromPdf: false
             });
+            return false;
+        }
+        return true;
+    };
+
+    const handleAsk = async () => {
+        if (!validateInputs()) return;
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('Not authenticated');
+
+            const { data } = await axios.post('http://localhost:8000/query/', 
+                {
+                    branch: inputs.branch.toLowerCase(),
+                    year: inputs.year,
+                    semester: inputs.semester,
+                    question: inputs.question
+                },
+                {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            setResponse({
+                answer: data.answer || "No answer found",
+                sources: data.sources || [],
+                isFromPdf: data.is_from_pdf || false
+            });
+        } catch (err) {
+            const errorMessage = err.response?.data?.answer || 
+                               err.response?.data?.detail || 
+                               err.message === 'Network Error' 
+                                    ? "🔌 Connection error - check network"
+                                    : 'Error fetching answer';
+            
+            setResponse({
+                answer: errorMessage,
+                sources: [],
+                isFromPdf: false
+            });
+
+            if (err.response?.status === 401) {
+                window.location.href = '/login';
+            }
         }
         setLoading(false);
     };
 
     const speakAnswer = (text) => {
         if (!synth.current || !text) return;
-        
         if (synth.current.speaking) synth.current.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.1;
-        utterance.pitch = 1;
-        utterance.voice = synth.current.getVoices().find(v => v.lang === 'en-US');
+        utterance.voice = synth.current.getVoices()
+            .find(v => v.lang === 'en-US') || synth.current.getVoices()[0];
         
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        
         currentUtterance.current = utterance;
         synth.current.speak(utterance);
     };
 
     const stopSpeaking = () => {
-        if (synth.current.speaking) {
+        if (synth.current?.speaking) {
             synth.current.cancel();
             setIsSpeaking(false);
         }
     };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto space-y-8">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
-                        YourAI Assistant
+                        NoteNinja AI
                     </h1>
-                    <p className="mt-2 text-red-300">Academic Query Resolution System</p>
+                    <p className="mt-2 text-red-300">Academic Knowledge Assistant</p>
                 </div>
 
                 <div className="bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700">
@@ -117,35 +139,35 @@ const StudentChat = () => {
                         <input 
                             type="text"
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Branch"
+                            placeholder="Branch (e.g., cse)"
                             value={inputs.branch}
                             onChange={e => setInputs({...inputs, branch: e.target.value})}
                         />
                         <input 
                             type="text"
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Year"
+                            placeholder="Year (e.g., 3)"
                             value={inputs.year}
-                            onChange={e => setInputs({...inputs, year: e.target.value})}
+                            onChange={e => setInputs({...inputs, year: e.target.value.replace(/\D/g, '')})}
                         />
                         <input 
                             type="text"
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Semester"
+                            placeholder="Semester (e.g., 6)"
                             value={inputs.semester}
-                            onChange={e => setInputs({...inputs, semester: e.target.value})}
+                            onChange={e => setInputs({...inputs, semester: e.target.value.replace(/\D/g, '')})}
                         />
                     </div>
                     
                     <div className="mb-6 relative">
                         <textarea 
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none pr-16"
-                            placeholder="Enter your academic question..."
+                            placeholder="Ask your academic question..."
                             value={inputs.question}
                             onChange={e => setInputs({...inputs, question: e.target.value})}
                         />
                         <button
-                            onClick={toggleVoiceInput}
+                            onClick={() => setIsRecording(!isRecording)}
                             className={`absolute right-3 bottom-3 p-2 rounded-full transition-all ${
                                 isRecording 
                                     ? 'animate-pulse bg-red-500/90 hover:bg-red-400/90'
@@ -168,9 +190,9 @@ const StudentChat = () => {
                         {loading ? (
                             <div className="flex items-center justify-center space-x-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                <span>Processing Query...</span>
+                                <span>Analyzing Documents...</span>
                             </div>
-                        ) : 'Ask your question'}
+                        ) : 'Ask Question'}
                     </button>
                 </div>
 
@@ -183,7 +205,7 @@ const StudentChat = () => {
                                 <button
                                     onClick={stopSpeaking}
                                     className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors"
-                                    title="Stop speaking"
+                                    title="Stop speech"
                                 >
                                     <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -193,7 +215,7 @@ const StudentChat = () => {
                                 <button
                                     onClick={() => speakAnswer(response.answer)}
                                     className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors"
-                                    title="Read aloud"
+                                    title="Read answer aloud"
                                 >
                                     <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6.343 9.657L14 2l1.414 1.414-7.657 7.657 7.657 7.657-1.414 1.414-7.657-7.657z" />
@@ -207,26 +229,29 @@ const StudentChat = () => {
                         </pre>
                         
                         {response.isFromPdf && response.sources.length > 0 && (
-  <div className="mt-6 pt-4 border-t border-gray-700 text-blue-400">
-    <p className="text-sm mb-2 font-semibold">Need the full document?</p>
-    <ul className="space-y-1 text-sm">
-      {response.sources.map((src, i) => (
-        <li key={i}>
-          📄 <a 
-            href={`http://localhost:8000/query/download?branch=${inputs.branch}&year=${inputs.year}&semester=${inputs.semester}&subject=${src}`} 
-            target="_blank" 
-            rel="noreferrer"
-            className="underline hover:text-blue-300"
-          >
-            Download {src}.pdf
-          </a>
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
+                            <div className="mt-6 pt-4 border-t border-gray-700 text-blue-400">
+                                <p className="text-sm mb-2 font-semibold">Reference Materials:</p>
+                                <ul className="space-y-1 text-sm">
+                                    {response.sources.map((src, i) => {
+                                        const [subject, filename] = src.split('/');
+                                        return (
+                                            <li key={i} className="truncate">
+                                                📄{' '}
+                                                <a
+                                                    href={`http://localhost:8000/query/download?branch=${inputs.branch}&year=${inputs.year}&semester=${inputs.semester}&subject=${subject}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="underline hover:text-blue-300"
+                                                >
+                                                    {filename || subject}
+                                                </a>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
 
-                        
                         {!response.isFromPdf && response.answer && (
                             <div className="mt-4 pt-4 border-t border-gray-700 flex items-center text-yellow-400">
                                 <svg className="w-5 h-5 mr-2 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
