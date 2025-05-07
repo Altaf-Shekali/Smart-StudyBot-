@@ -23,7 +23,8 @@ const Login = () => {
       login(res.data.access_token, res.data.role);
       toast.success("Login successful! Redirecting...");
       console.log(res.data.access_token);
-      localStorage.setItem("access_token", res.data.access_token);
+      localStorage.setItem("token", res.data.access_token);  // Consistent key
+      localStorage.setItem("userRole", res.data.role);
       setTimeout(() => {
         navigate(res.data.role === "teacher" ? "/teacher" : "/student");
       }, 2000);

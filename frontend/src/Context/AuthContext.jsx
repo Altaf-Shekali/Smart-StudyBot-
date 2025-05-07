@@ -1,20 +1,20 @@
-// src/context/AuthContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
+  const [userRole, setUserRole] = useState(() => localStorage.getItem("role"));
 
+  // Sync with localStorage changes
   useEffect(() => {
-    // Check for existing token on initial load
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (token && role) {
-      setIsLoggedIn(true);
-      setUserRole(role);
-    }
+    const handleStorage = () => {
+      setIsLoggedIn(!!localStorage.getItem("token"));
+      setUserRole(localStorage.getItem("role"));
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const login = (token, role) => {

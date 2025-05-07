@@ -19,9 +19,9 @@ const HistoryPage = () => {
 
     const fetchHistory = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/history', {
+        const response = await axios.get('http://localhost:8000/query/history', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${localStorage.getItem('token')}`  // Changed to 'token'
           }
         });
         setHistory(response.data);
