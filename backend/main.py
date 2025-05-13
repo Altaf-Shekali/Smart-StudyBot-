@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, Form,File
+from fastapi import FastAPI, UploadFile, Form,File,APIRouter, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
@@ -8,8 +8,11 @@ import shutil
 from routers import auth, query  # ✅ Import auth and query routers
 from retriever import create_vectorstore, load_vectorstore
 from llm_interface import run_llm_ollama
-from db import engine, Base
+from db import engine, Base,get_db
 from models import User
+from routers import profile
+from sqlalchemy.orm import Session 
+from routers.query import get_current_user
 
 # logging.basicConfig(
 #     level=logging.INFO,  # or DEBUG for more verbosity
@@ -21,6 +24,7 @@ from models import User
 # )
 
 app = FastAPI()
+router = APIRouter()
 
 # ✅ Allow frontend access
 app.add_middleware(
@@ -37,6 +41,7 @@ Base.metadata.create_all(bind=engine)
 # ✅ Mount routers
 app.include_router(auth.router, prefix="/auth")    # ✅ Auth
 app.include_router(query.router, prefix="/query", tags=["query"])
+app.include_router(profile.router, prefix="/api")
 
 UPLOAD_DIR = "data"
 VECTOR_STORE_DIR = "vector_store"
@@ -80,3 +85,25 @@ async def list_documents():
         return {"documents": documents}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error occurred: {str(e)}"})
+@router.get("/profile")
+def get_profile(current_user: User = Depends(get_current_user)):
+    return {
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role,
+        "branch": current_user.branch,
+        "year": current_user.year
+    }
+
+@router.put("/profile")
+def update_profile(
+    form: dict,  # Or use a Pydantic schema
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.name = form["name"]
+    current_user.role = form["role"]
+    current_user.branch = form["branch"]
+    current_user.year = form["year"]
+    db.commit()
+    return {"message": "Profile updated"}

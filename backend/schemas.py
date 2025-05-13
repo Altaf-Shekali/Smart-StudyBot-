@@ -8,6 +8,10 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str
+    name: str
+    branch: str
+    year: str
+
 
 
 class UserLogin(BaseModel):
@@ -39,6 +43,18 @@ class SearchHistoryEntry(BaseModel):
     year: str
     is_from_pdf: bool
     timestamp: datetime
+# ---------- Profile Schemas ----------
+class ProfileUpdate(BaseModel):
+    name: str
+    role: str
+    branch: str
+    year: str
+
+class PasswordChange(BaseModel):
+    currentPassword: str
+    newPassword: str
+    confirmPassword: str
+
 
     class Config:
         from_attributes = True

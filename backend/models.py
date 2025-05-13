@@ -9,6 +9,10 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     role = Column(String)  # "student" or "teacher"
+    name = Column(String, default="")
+    branch = Column(String, default="")
+    year = Column(String, default="")
+
 class SearchHistory(Base):
     __tablename__ = "search_history"
 

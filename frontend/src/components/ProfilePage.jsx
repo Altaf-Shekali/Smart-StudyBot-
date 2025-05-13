@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getToken, logout } from "../utils/auth";
@@ -8,13 +8,12 @@ import "react-toastify/dist/ReactToastify.css";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [form, setForm] = useState({
-    name: "John Doe",
-    email: "john@eduai.com",
-    role: "student",
-    branch: "Computer Science",
-    year: "2024"
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    branch: "",
+    year: ""
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -22,6 +21,36 @@ const ProfilePage = () => {
     confirmPassword: ""
   });
   const [avatar, setAvatar] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = getToken();
+      if (!token) {
+        logout();
+        navigate("/login");
+        return;
+      }
+
+      try {
+        // Fetch user data
+        const response = await axios.get("http://localhost:8000/api/api/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserData(response.data);
+
+        // Fetch avatar from localStorage
+        const savedAvatar = localStorage.getItem('avatar');
+        if (savedAvatar) {
+          setAvatar(savedAvatar);
+        }
+      } catch (err) {
+        toast.error("Failed to load profile");
+        logout();
+        navigate("/login");
+      }
+    };
+    fetchProfile();
+  }, [navigate]);
 
   const handleLogout = () => {
     logout();
@@ -31,26 +60,20 @@ const ProfilePage = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setAvatar(URL.createObjectURL(file));
-    }
-  };
-
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.put("http://localhost:8000/api/profile", form, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      toast.success("Profile updated successfully!");
-    } catch (err) {
-      toast.error("Update failed: " + (err.response?.data?.message || err.message));
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target.result;
+        localStorage.setItem('avatar', imageUrl);
+        setAvatar(imageUrl);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/api/change-password", passwordForm, {
+      await axios.post("http://localhost:8000/api/api/change-password", passwordForm, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       toast.success("Password changed successfully!");
@@ -101,30 +124,29 @@ const ProfilePage = () => {
               </div>
 
               <div className="space-y-2 text-center">
-                <h2 className="text-2xl font-bold text-gray-100">{form.name}</h2>
+                <h2 className="text-2xl font-bold text-gray-100">{userData.name}</h2>
                 <p className="text-gray-400 flex items-center justify-center">
                   <FaUniversity className="mr-2" />
-                  {form.branch}
+                  {userData.branch}
                 </p>
                 <p className="text-gray-400 flex items-center justify-center">
                   <FaCalendarAlt className="mr-2" />
-                  Batch {form.year}
+                  Batch {userData.year}
                 </p>
               </div>
             </div>
 
             {/* Main Content */}
             <div className="md:w-2/3 space-y-8">
-              {/* Profile Info Form */}
-              <form onSubmit={handleUpdateProfile} className="space-y-6">
+              {/* Read-only Profile Information */}
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Full Name"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                      value={userData.name}
+                      readOnly
                     />
                     <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
@@ -132,34 +154,24 @@ const ProfilePage = () => {
                   <div className="relative">
                     <input
                       type="email"
-                      placeholder="Email"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                      value={form.email}
-                      disabled
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                      value={userData.email}
+                      readOnly
                     />
                     <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
 
                   <div className="relative">
-                    <select
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white appearance-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
-                    </select>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                      value={userData.role}
+                      readOnly
+                    />
                     <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-                >
-                  Update Profile
-                </button>
-              </form>
+              </div>
 
               {/* Password Change Form */}
               <form onSubmit={handleChangePassword} className="space-y-6 pt-8 border-t border-gray-700">
