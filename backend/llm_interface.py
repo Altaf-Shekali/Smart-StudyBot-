@@ -1,7 +1,7 @@
 import subprocess
 
 # Change this to "gemma:2b", "phi", "tinyllama", "llama2", or "mistral"
-MODEL_NAME = "phi"  # ✅ Use Google's Gemma 2B for balanced performance and speed
+MODEL_NAME = "mistral"  # ✅ Use Google's Gemma 2B for balanced performance and speed
 
 def run_llm_ollama(prompt):
     try:

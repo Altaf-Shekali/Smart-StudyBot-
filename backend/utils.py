@@ -39,3 +39,62 @@ def validate_directory_structure(base_path):
             if any(f.endswith((".faiss", ".pkl")) for f in os.listdir(subject_dir)):
                 return True
     return False
+def create_prompt(context_list, question: str) -> str:
+    """
+    Creates a prompt for the LLM using the retrieved document context.
+    """
+    context_text = "\n\n".join(context_list)
+    prompt = (
+        "You are a helpful assistant. Use the following context to answer the user's question.\n\n"
+        f"Context:\n{context_text}\n\n"
+        f"Question: {question}\n"
+        "Answer:"
+    )
+    return prompt
+
+def build_context(results):
+    """
+    Extracts content from search results for prompt generation.
+    """
+    return [doc["content"] for doc in results if "content" in doc]
+
+def postprocess_answer(answer: str) -> str:
+    """
+    Cleans up the model's answer (optional).
+    """
+    return answer.strip()
+
+def extract_sources(results, final_answer: str) -> str:
+    """
+    Extracts source filenames or paths used in the answer.
+    """
+    sources = set()
+    for res in results:
+        if "source" in res:
+            sources.add(res["source"])
+    return ",".join(sorted(sources))
+
+def save_history(
+    db,
+    user,
+    query,
+    answer,
+    sources
+):
+    """
+    Saves the query and answer to the database.
+    """
+    new_entry = SearchHistory(
+        user_id=user.email,
+        question=query.question,
+        answer=answer,
+        sources=sources,
+        branch=query.branch,
+        year=query.year,
+        semester=query.semester,
+        is_from_pdf=True,
+        timestamp=datetime.utcnow()
+    )
+    db.add(new_entry)
+    db.commit()
+    db.refresh(new_entry)

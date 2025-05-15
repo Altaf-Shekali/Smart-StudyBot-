@@ -21,20 +21,36 @@ def get_db():
         db.close()
 
 @router.post("/signup")
-def signup(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
+async def signup_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db)
+):
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    new_user = User(
-        email=user.email,
-        password=get_password_hash(user.password),
-        role=user.role
-    )
+
+    if user_data.role == "teacher":
+        new_user = User(
+            email=user_data.email,
+            password=get_password_hash(user_data.password),
+            role=user_data.role,
+            name=user_data.name,
+            branch=None,
+            year=None
+        )
+    else:
+        new_user = User(
+            email=user_data.email,
+            password=get_password_hash(user_data.password),
+            role=user_data.role,
+            name=user_data.name,
+            branch=user_data.branch,
+            year=user_data.year
+        )
+
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
-    return {"message": "Signup successful", "role": new_user.role}
+    return {"message": "User created successfully"}
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

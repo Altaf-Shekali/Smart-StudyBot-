@@ -11,12 +11,21 @@ const Signup = () => {
     branch: "",
     year: ""
   });
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Remove branch and year if role is teacher
+    const payload = { ...form };
+    if (form.role === "teacher") {
+      delete payload.branch;
+      delete payload.year;
+    }
+
     try {
-      await axios.post("http://localhost:8000/auth/signup", form);
+      await axios.post("http://localhost:8000/auth/signup", payload);
       alert("Signup successful ✅");
       navigate("/");
     } catch (err) {
@@ -73,23 +82,27 @@ const Signup = () => {
               <option value="teacher">Teacher</option>
             </select>
 
-            <input
-              type="text"
-              placeholder="Branch (e.g., CSE)"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-              value={form.branch}
-              onChange={(e) => setForm({ ...form, branch: e.target.value })}
-              required
-            />
+            {form.role === "student" && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Branch (e.g., CSE)"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  value={form.branch}
+                  onChange={(e) => setForm({ ...form, branch: e.target.value })}
+                  required
+                />
 
-            <input
-              type="text"
-              placeholder="Graduation Year (e.g., 2026)"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-              value={form.year}
-              onChange={(e) => setForm({ ...form, year: e.target.value })}
-              required
-            />
+                <input
+                  type="text"
+                  placeholder="Graduation Year (e.g., 2026)"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  value={form.year}
+                  onChange={(e) => setForm({ ...form, year: e.target.value })}
+                  required
+                />
+              </>
+            )}
           </div>
 
           <button

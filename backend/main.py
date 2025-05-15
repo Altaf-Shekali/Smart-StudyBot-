@@ -13,6 +13,8 @@ from models import User
 from routers import profile
 from sqlalchemy.orm import Session 
 from routers.query import get_current_user
+from fastapi import FastAPI
+from routers import subjectroute as subjectroute
 
 # logging.basicConfig(
 #     level=logging.INFO,  # or DEBUG for more verbosity
@@ -42,7 +44,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth.router, prefix="/auth")    # ✅ Auth
 app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(profile.router, prefix="/api")
-
+app.include_router(subjectroute.router)
 UPLOAD_DIR = "data"
 VECTOR_STORE_DIR = "vector_store"
 

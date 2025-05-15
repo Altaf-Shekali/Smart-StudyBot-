@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getToken, logout } from "../utils/auth";
-import { FaUser, FaEnvelope, FaLock, FaUniversity, FaCalendarAlt, FaKey } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaUniversity, FaCalendarAlt } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -15,12 +15,9 @@ const ProfilePage = () => {
     branch: "",
     year: ""
   });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
   const [avatar, setAvatar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,21 +29,31 @@ const ProfilePage = () => {
       }
 
       try {
-        // Fetch user data
         const response = await axios.get("http://localhost:8000/api/api/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setUserData(response.data);
+        console.log("Profile API Response:", response.data);
+        
+        // Set user data with proper fallbacks
+        setUserData({
+          name: response.data.name || "Not provided",
+          email: response.data.email,
+          role: response.data.role || "student",
+          branch: response.data.branch || "Not provided",
+          year: response.data.year || "Not provided"
+        });
 
-        // Fetch avatar from localStorage
+        // Load avatar from localStorage
         const savedAvatar = localStorage.getItem('avatar');
-        if (savedAvatar) {
-          setAvatar(savedAvatar);
-        }
+        if (savedAvatar) setAvatar(savedAvatar);
+
       } catch (err) {
-        toast.error("Failed to load profile");
+        console.error("Profile fetch error:", err);
+        toast.error("Failed to load profile data");
         logout();
         navigate("/login");
+      } finally {
+        setLoading(false);
       }
     };
     fetchProfile();
@@ -65,23 +72,32 @@ const ProfilePage = () => {
         const imageUrl = event.target.result;
         localStorage.setItem('avatar', imageUrl);
         setAvatar(imageUrl);
+        toast.success("Profile picture updated");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleChangePassword = async (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/api/api/change-password", passwordForm, {
+      await axios.put("http://localhost:8000/api/api/profile", userData, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
-      toast.success("Password changed successfully!");
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      toast.success("Profile updated successfully");
+      setEditMode(false);
     } catch (err) {
-      toast.error("Password change failed: " + (err.response?.data?.message || err.message));
+      toast.error("Update failed: " + (err.response?.data?.detail || err.message));
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
@@ -94,10 +110,9 @@ const ProfilePage = () => {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200"
+          className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200"
         >
-          <FaKey className="w-4 h-4" />
-          <span>Logout</span>
+          Logout
         </button>
       </nav>
 
@@ -110,7 +125,7 @@ const ProfilePage = () => {
                 <img
                   src={avatar || "https://via.placeholder.com/150"}
                   className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 object-cover"
-                  alt="Avatar"
+                  alt="Profile"
                 />
                 <label className="absolute bottom-0 right-4 bg-blue-500 p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
                   <input
@@ -131,22 +146,36 @@ const ProfilePage = () => {
                 </p>
                 <p className="text-gray-400 flex items-center justify-center">
                   <FaCalendarAlt className="mr-2" />
-                  Batch {userData.year}
+                  {userData.year ? `Batch ${userData.year}` : "Batch not set"}
                 </p>
               </div>
             </div>
 
             {/* Main Content */}
-            <div className="md:w-2/3 space-y-8">
-              {/* Read-only Profile Information */}
-              <div className="space-y-6">
+            <div className="md:w-2/3 space-y-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-100">Profile Details</h3>
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  {editMode ? "Cancel" : "Edit Profile"}
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateProfile} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                     <input
                       type="text"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                      className={`w-full px-4 py-3 bg-gray-700 border ${
+                        editMode ? "border-gray-600" : "border-transparent"
+                      } rounded-lg text-white pl-12 transition-colors ${
+                        editMode ? "focus:ring-2 focus:ring-blue-500" : ""
+                      }`}
                       value={userData.name}
-                      readOnly
+                      onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                      readOnly={!editMode}
                     />
                     <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
@@ -154,7 +183,7 @@ const ProfilePage = () => {
                   <div className="relative">
                     <input
                       type="email"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                      className="w-full px-4 py-3 bg-gray-700 border border-transparent rounded-lg text-white pl-12 cursor-not-allowed"
                       value={userData.email}
                       readOnly
                     />
@@ -162,63 +191,61 @@ const ProfilePage = () => {
                   </div>
 
                   <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white pl-12"
+                    <select
+                      className={`w-full px-4 py-3 bg-gray-700 border ${
+                        editMode ? "border-gray-600" : "border-transparent"
+                      } rounded-lg text-white pl-12 transition-colors ${
+                        editMode ? "focus:ring-2 focus:ring-blue-500" : ""
+                      }`}
                       value={userData.role}
-                      readOnly
-                    />
-                    <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      onChange={(e) => setUserData({ ...userData, role: e.target.value })}
+                      disabled={!editMode}
+                    >
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                    </select>
+                    <FaUniversity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
-                </div>
-              </div>
 
-              {/* Password Change Form */}
-              <form onSubmit={handleChangePassword} className="space-y-6 pt-8 border-t border-gray-700">
-                <h3 className="text-xl font-bold text-gray-100">Change Password</h3>
-                <div className="space-y-4">
                   <div className="relative">
                     <input
-                      type="password"
-                      placeholder="Current Password"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      type="text"
+                      className={`w-full px-4 py-3 bg-gray-700 border ${
+                        editMode ? "border-gray-600" : "border-transparent"
+                      } rounded-lg text-white pl-12 transition-colors ${
+                        editMode ? "focus:ring-2 focus:ring-blue-500" : ""
+                      }`}
+                      value={userData.branch}
+                      onChange={(e) => setUserData({ ...userData, branch: e.target.value })}
+                      readOnly={!editMode}
                     />
-                    <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <FaUniversity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="New Password"
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                        value={passwordForm.newPassword}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      />
-                      <FaKey className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="Confirm Password"
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-12"
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      />
-                      <FaKey className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`w-full px-4 py-3 bg-gray-700 border ${
+                        editMode ? "border-gray-600" : "border-transparent"
+                      } rounded-lg text-white pl-12 transition-colors ${
+                        editMode ? "focus:ring-2 focus:ring-blue-500" : ""
+                      }`}
+                      value={userData.year}
+                      onChange={(e) => setUserData({ ...userData, year: e.target.value })}
+                      readOnly={!editMode}
+                    />
+                    <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-                >
-                  Change Password
-                </button>
+                {editMode && (
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                  >
+                    Save Changes
+                  </button>
+                )}
               </form>
             </div>
           </div>
