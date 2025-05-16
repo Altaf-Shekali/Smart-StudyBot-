@@ -21,6 +21,7 @@ def get_db():
         db.close()
 
 @router.post("/signup")
+@router.post("/signup")
 async def signup_user(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -29,28 +30,20 @@ async def signup_user(
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    if user_data.role == "teacher":
-        new_user = User(
-            email=user_data.email,
-            password=get_password_hash(user_data.password),
-            role=user_data.role,
-            name=user_data.name,
-            branch=None,
-            year=None
-        )
-    else:
-        new_user = User(
-            email=user_data.email,
-            password=get_password_hash(user_data.password),
-            role=user_data.role,
-            name=user_data.name,
-            branch=user_data.branch,
-            year=user_data.year
-        )
+    # Create the user with or without branch/year based on role
+    new_user = User(
+        email=user_data.email,
+        password=get_password_hash(user_data.password),
+        role=user_data.role,
+        name=user_data.name,
+        branch=user_data.branch or "",
+        year=user_data.year or ""
+    )
 
     db.add(new_user)
     db.commit()
     return {"message": "User created successfully"}
+
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

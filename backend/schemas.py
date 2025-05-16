@@ -1,18 +1,25 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel, model_validator
+from typing import Optional
 
-
-# ---------- User Schemas ----------
 class UserCreate(BaseModel):
     email: str
     password: str
-    role: str
+    role: str  # "student" or "teacher"
     name: str
-    branch: str
-    year: str
+    branch: Optional[str] = None
+    year: Optional[str] = None
 
-
+    @model_validator(mode="after")
+    def validate_student_fields(self):
+        if self.role == "student":
+            if not self.branch:
+                raise ValueError("Branch is required for students.")
+            if not self.year:
+                raise ValueError("Year is required for students.")
+        return self
 
 class UserLogin(BaseModel):
     email: str
