@@ -7,6 +7,8 @@ from models import User
 from schemas import UserCreate
 from utils import get_password_hash, verify_password, create_access_token
 
+
+
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 

@@ -7,12 +7,13 @@ import os
 import re
 import numpy as np
 
+
 # ----- Load and Clean PDF Text -----
 def load_pdf(path):
     try:
         reader = PdfReader(path)
-        return "\n".join([ 
-            re.sub(r'\s+', ' ', p.extract_text()).strip() 
+        return "\n".join([
+            re.sub(r'\s+', ' ', p.extract_text()).strip()
             for p in reader.pages if p.extract_text()
         ])
     except Exception as e:
@@ -25,22 +26,25 @@ def create_vectorstore(pdf_path, store_dir):
     if not text:
         raise ValueError("No text extracted from PDF")
 
-    # The rest of your existing code
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,
         chunk_overlap=300,
-        separators=["\n\n• ", "\n\n", "\n", ". ", "! ", "? ", "; "]
+        separators=["\n\n", "\n", ". ", "! ", "? ", "; "]
     )
-    
-    # Create hierarchical chunks
+
     docs = []
-    for section in text.split("\n\n"):
-        section_chunks = splitter.split_text(section)
-        docs.extend([Document( 
-            page_content=chunk,
-            metadata={"source": f"{os.path.basename(pdf_path)}-section{i}"}
-        ) for i, chunk in enumerate(section_chunks)])
-    
+    for section_title, section_content in extract_sections(text):
+        section_chunks = splitter.split_text(section_content)
+        docs.extend([
+            Document(
+                page_content=chunk,
+                metadata={
+                    "source": os.path.basename(pdf_path),
+                    "section": section_title
+                }
+            ) for chunk in section_chunks
+        ])
+
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     db = FAISS.from_documents(docs, embeddings)
     db.save_local(store_dir)
@@ -77,41 +81,53 @@ def scale_scores(scores, score_range=(0, 1)):
 def search_multiple_indexes(base_dir, query, min_threshold=0.15, max_threshold=0.85):
     matches = []
     sources = set()
-    
-    # Check if base_dir exists first
+
     if not os.path.exists(base_dir):
         return {"matched_chunks": [], "sources": []}
-    
+
     for subject in os.listdir(base_dir):
         subject_dir = os.path.join(base_dir, subject)
         try:
             if not os.path.isdir(subject_dir):
                 continue
-                
+
             db = load_vectorstore(subject_dir)
             raw_results = db.similarity_search_with_relevance_scores(query, k=7)
-            
+
             if not raw_results:
                 continue
-                
-            # Extract scores and normalize
+
             scores = np.array([score for _, score in raw_results])
             scaled_scores = scale_scores(scores, (0, 1))
-            
-            # Apply dynamic thresholding
+
             avg_score = np.mean(scaled_scores)
             dynamic_threshold = max(min_threshold, avg_score - 0.15)
-            
+
             for (doc, _), scaled in zip(raw_results, scaled_scores):
                 if scaled >= dynamic_threshold:
-                    matches.append(f"Source: {doc.metadata['source']}\nContent: {doc.page_content}")
-                    sources.add(f"{subject}/{doc.metadata['source']}")
+                    section = doc.metadata.get('section', 'Unknown Section')
+                    matches.append(f"Source: {doc.metadata['source']} | Section: {section}\nContent: {doc.page_content}")
+                    sources.add(f"{subject}/{doc.metadata['source']} | Section: {section}")
 
         except Exception as e:
             print(f"Search error in {subject}: {str(e)}")
-    
-    # Relevance-based sorting
+
     return {
         "matched_chunks": sorted(matches, key=lambda x: len(x), reverse=True)[:5],
         "sources": list(sources)
     }
+
+def extract_sections(text):
+    # Regex pattern to detect headings (e.g., "1. Introduction", "2.1 Background")
+    pattern = re.compile(r'(?:^|\n)(\d+(?:\.\d+)*\s+[^\n]+)\n')
+    matches = list(pattern.finditer(text))
+    sections = []
+
+    for i, match in enumerate(matches):
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        title = match.group(1).strip()
+        content = text[start:end].strip()
+        sections.append((title, content))
+
+    return sections

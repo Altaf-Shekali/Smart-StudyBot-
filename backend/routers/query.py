@@ -15,6 +15,7 @@ from llm_interface import run_llm_ollama
 from utils import validate_directory_structure
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ async def query_document(
             context = "\n".join(numbered_chunks)
             prompt = f"""You are an academic assistant helping students with questions based only on provided study material.
 
-Start with "According to course materials:" and present the answer clearly using bullet points or concise explanation. Use the numbered material if helpful to organize thoughts, but do not explain or reveal citation formats to the user.
+Start with "According to course materials:" and present the answer clearly using bullet points or concise explanation. Use the numbered material if helpful to organize thoughts, but do not explain or reveal citation formats to the user.If not find relevant content answer generally using general knowledge.
 
 --- Study Material ---
 {context}

@@ -7,6 +7,8 @@ from retriever import create_vectorstore
 import os, shutil
 
 router = APIRouter()
+VECTOR_STORE_DIR = "vector_store"
+
 
 SECRET_KEY = "supersecret"
 ALGORITHM = "HS256"
