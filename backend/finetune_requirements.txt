@@ -1,0 +1,19 @@
+# Fine-tuning specific requirements
+torch>=2.0.0
+transformers>=4.35.0
+peft>=0.6.0
+datasets>=2.14.0
+accelerate>=0.24.0
+bitsandbytes>=0.41.0
+scipy>=1.11.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# For GGUF conversion
+llama-cpp-python>=0.2.0
+gguf>=0.1.0
+
+# Evaluation
+rouge-score>=0.1.2
+sacrebleu>=2.3.1
+evaluate>=0.4.0

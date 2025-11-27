@@ -1,0 +1,59 @@
+# Environment variables
+.env
+*.env
+.env.local
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node modules
+node_modules/
+
+# Build directories
+build/
+dist/
+
+# Model files (large files)
+*.bin
+*.safetensors
+models/*.bin
+models/*.safetensors
+
+# Vector store data
+vector_store/
+
+# Temporary files
+*.tmp
+*.temp
+
+# API keys and secrets
+secrets.json
+config.json

@@ -1,0 +1,104 @@
+[
+    {
+        "instruction": "Define Big O notation briefly for beginners.",
+        "input": "",
+        "output": "Answer: Big O notation describes how an algorithm's runtime or space grows with input size.\nExplanation: It abstracts constant factors and lower-order terms, focusing on worst-case growth (e.g., O(n), O(n log n)).\nExample: Linear search is O(n) because time grows proportionally with the number of elements.\nSource: Course notes (Algorithms Intro)."
+    },
+    {
+        "instruction": "Explain recursion with an analogy and example code.",
+        "input": "",
+        "output": "Answer: Recursion solves a problem by calling the same function on smaller subproblems until a base case is met.\nExplanation: Think of Russian nesting dolls—each doll contains a smaller doll until you reach the smallest.\nExample: Python factorial:\n```python\ndef fact(n):\n    return 1 if n == 0 else n * fact(n-1)\n```\nSource: Study guide (Functions & Recursion)."
+    },
+    {
+        "instruction": "Compare arrays vs linked lists for random access and insertion performance.",
+        "input": "",
+        "output": "Answer: Arrays have O(1) random access; linked lists have O(n). Insertions are O(n) in arrays (worst case) vs O(1) with a known node in linked lists.\nExplanation: Arrays are contiguous so index access is constant; linked lists must traverse nodes. Insertions at known positions are cheap in linked lists.\nExample: Insert at head: array O(n) (shift), singly linked list O(1) (re-link).\nSource: Data Structures overview."
+    },
+    {
+        "instruction": "Give a concise explanation of HTTP status codes 200, 400, 401, 404, 500.",
+        "input": "",
+        "output": "Answer: 200 OK, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Internal Server Error.\nExplanation: They signal outcome/status of an HTTP request.\nExample: GET /users returns 200 OK when users are found; unknown route may return 404.\nSource: HTTP spec summary."
+    },
+    {
+        "instruction": "Show a Python function to reverse a string in O(n) time.",
+        "input": "",
+        "output": "Answer: Use slicing or a loop to reverse the string in linear time.\nExplanation: Each character must be visited at least once; slicing creates a reversed copy.\nExample:\n```python\ndef rev(s):\n    return s[::-1]\n```\nSource: Python basics."
+    },
+    {
+        "instruction": "Explain time vs space complexity for merge sort.",
+        "input": "",
+        "output": "Answer: Time is O(n log n); space is O(n).\nExplanation: Merge sort splits recursively (log n levels) and merges n elements per level; merging needs extra arrays.\nExample: Sorting [3,1,4,2] splits into halves repeatedly then merges sorted halves.\nSource: Algorithms textbook."
+    },
+    {
+        "instruction": "Provide a quick guide to SQL JOIN types: INNER, LEFT, RIGHT, FULL.",
+        "input": "",
+        "output": "Answer: INNER returns matches; LEFT keeps all left rows; RIGHT keeps all right rows; FULL keeps all rows from both sides.\nExplanation: JOINs combine rows across tables based on matching keys.\nExample:\n```sql\nSELECT * FROM A LEFT JOIN B ON A.id=B.id;\n```\nSource: SQL cheatsheet."
+    },
+    {
+        "instruction": "Explain overfitting vs underfitting in ML with a short example.",
+        "input": "",
+        "output": "Answer: Overfitting memorizes training data (poor generalization); underfitting is too simple to learn patterns.\nExplanation: Overfit model has low training error but high test error; underfit has high error on both.\nExample: Degree-20 polynomial on simple data overfits.\nSource: ML course notes."
+    },
+    {
+        "instruction": "Describe REST vs GraphQL briefly.",
+        "input": "",
+        "output": "Answer: REST uses multiple endpoints with fixed shapes; GraphQL uses a single endpoint with flexible queries.\nExplanation: GraphQL lets clients request exactly the fields needed, reducing over/under-fetching.\nExample: REST: GET /users/1; GraphQL: query { user(id:1){ id name }}\nSource: API design guide."
+    },
+    {
+        "instruction": "Write a JavaScript function debouncing a search input (300ms).",
+        "input": "",
+        "output": "Answer: Debounce delays function execution until inactivity period.\nExplanation: Prevents excessive calls when typing, improving performance.\nExample:\n```js\nfunction debounce(fn, delay=300){\n  let t;return (...args)=>{clearTimeout(t);t=setTimeout(()=>fn(...args),delay)}\n}\n```\nSource: Frontend utility patterns."
+    },
+    {
+        "instruction": "Explain primary key vs foreign key in relational databases.",
+        "input": "",
+        "output": "Answer: Primary key uniquely identifies a row; foreign key references a primary key in another table.\nExplanation: FKs enforce referential integrity between related tables.\nExample: orders.user_id references users.id.\nSource: DB fundamentals."
+    },
+    {
+        "instruction": "Give a short guide on binary search prerequisites and complexity.",
+        "input": "",
+        "output": "Answer: Requires a sorted array; time O(log n).\nExplanation: Repeatedly halves search space based on mid comparison.\nExample:\n```python\ndef bs(a,x):\n  l,r=0,len(a)-1\n  while l<=r:\n    m=(l+r)//2\n    if a[m]==x:return m\n    l,r=(m+1,r) if a[m]<x else (l,m-1)\n  return -1\n```\nSource: Algorithms quickref."
+    },
+    {
+        "instruction": "Explain hash collisions and how to handle them.",
+        "input": "",
+        "output": "Answer: Collisions occur when different keys map to the same bucket.\nExplanation: Use chaining (linked lists) or open addressing (probing) to resolve.\nExample: Python dict uses open addressing variants under the hood.\nSource: Data structure notes."
+    },
+    {
+        "instruction": "Show a minimal FastAPI endpoint returning JSON and enable CORS.",
+        "input": "",
+        "output": "Answer: Use FastAPI with CORSMiddleware to allow browser requests.\nExplanation: CORS is needed for cross-origin frontend/backend communication.\nExample:\n```python\nfrom fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\napp=FastAPI()\napp.add_middleware(CORSMiddleware,allow_origins=['*'],allow_headers=['*'],allow_methods=['*'])\n@app.get('/ping')\ndef ping():return {'ok':True}\n```\nSource: FastAPI docs."
+    },
+    {
+        "instruction": "Contrast synchronous vs asynchronous I/O.",
+        "input": "",
+        "output": "Answer: Sync blocks on I/O; async interleaves tasks while waiting.\nExplanation: Async improves throughput for I/O-bound workloads by not idling on waits.\nExample: Python's asyncio for many concurrent HTTP requests.\nSource: Systems lecture."
+    },
+    {
+        "instruction": "Provide a short explanation of CAP theorem.",
+        "input": "",
+        "output": "Answer: In a network partition, a system must choose Consistency or Availability.\nExplanation: You can only have two of Consistency, Availability, and Partition tolerance (P is required if nets can partition).\nExample: Cassandra favors AP; traditional RDBMS favor CP in partitions.\nSource: Distributed systems summary."
+    },
+    {
+        "instruction": "Explain gradient descent in two sentences and show a formula.",
+        "input": "",
+        "output": "Answer: Gradient descent iteratively updates parameters opposite the gradient to minimize loss.\nExplanation: Step size is controlled by learning rate; repeat until convergence.\nExample: Update rule: θ := θ - α ∇L(θ)\nSource: ML refresher."
+    },
+    {
+        "instruction": "Provide a minimal Dockerfile for a FastAPI app (uvicorn).",
+        "input": "",
+        "output": "Answer: Use slim python base, install deps, expose port, run uvicorn.\nExplanation: Keep image lean with slim and no cache installs.\nExample:\n```dockerfile\nFROM python:3.11-slim\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\nCOPY . .\nEXPOSE 8000\nCMD [\"uvicorn\",\"main:app\",\"--host\",\"0.0.0.0\",\"--port\",\"8000\"]\n```\nSource: DevOps notes."
+    },
+    {
+        "instruction": "Explain unit tests vs integration tests.",
+        "input": "",
+        "output": "Answer: Unit tests validate small pieces in isolation; integration tests validate components working together.\nExplanation: Unit tests run fast and isolate failures; integration tests catch interface issues.\nExample: Testing a pure function (unit) vs hitting a database (integration).\nSource: Testing pyramid."
+    },
+    {
+        "instruction": "Show a TypeScript interface for a student and a function that formats a name.",
+        "input": "",
+        "output": "Answer: Define a Student interface and a function consuming it.\nExplanation: TS interfaces enforce shape contracts at compile time.\nExample:\n```ts\ninterface Student{ id:number; name:string; branch:string }\nfunction displayName(s:Student){ return `#${s.id} - ${s.name}` }\n```\nSource: TS quickstart."
+    }
+]
+
+

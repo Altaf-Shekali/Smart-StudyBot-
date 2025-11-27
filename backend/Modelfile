@@ -1,0 +1,2 @@
+FROM phi
+PARAMETER quantization q6_k
