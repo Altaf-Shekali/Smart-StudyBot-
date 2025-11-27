@@ -12,7 +12,6 @@ import io
 
 router = APIRouter(tags=["Marks"])
 
-# Pydantic models for request/response
 class MarksEntryRequest(BaseModel):
     usn: str
     subject: str
